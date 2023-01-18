@@ -3,6 +3,8 @@ import VideoPlayer from "./modules/playVideo";
 import MiniSlider from "./modules/slider/mini-slider";
 import Difference from "./modules/difference";
 import Form from "./modules/forms";
+import ShowInfo from "./modules/showInfo";
+import Download from "./modules/download";
 
 window.addEventListener("DOMContentLoaded", () => {
 	const slider = new MainSlider({
@@ -47,6 +49,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
 	const player = new VideoPlayer(".showup .play", ".overlay");
 	player.init();
+	const playerModules = new VideoPlayer(".module__video-item .play", ".overlay");
+	playerModules.init();
 
 	const difference = new Difference(
 		".officerold",
@@ -54,6 +58,8 @@ window.addEventListener("DOMContentLoaded", () => {
 		".officer__card-item"
 	);
 	difference.init();
+	const info = new ShowInfo(".plus__content");
+	info.init();
 
 	// const differenceNew = new Difference(".officernew", ".officer__card-item");
 	// differenceNew.init();
@@ -62,4 +68,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
 	const form = new Form(".form");
 	form.init();
+	const download = new Download(".download");
+	download.init();
 });

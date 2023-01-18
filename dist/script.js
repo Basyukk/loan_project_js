@@ -100,6 +100,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _modules_slider_mini_slider__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./modules/slider/mini-slider */ "./src/js/modules/slider/mini-slider.js");
 /* harmony import */ var _modules_difference__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./modules/difference */ "./src/js/modules/difference.js");
 /* harmony import */ var _modules_forms__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./modules/forms */ "./src/js/modules/forms.js");
+/* harmony import */ var _modules_showInfo__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./modules/showInfo */ "./src/js/modules/showInfo.js");
+/* harmony import */ var _modules_download__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./modules/download */ "./src/js/modules/download.js");
+
+
 
 
 
@@ -142,8 +146,12 @@ window.addEventListener("DOMContentLoaded", () => {
   moduleSlider.init();
   const player = new _modules_playVideo__WEBPACK_IMPORTED_MODULE_1__["default"](".showup .play", ".overlay");
   player.init();
+  const playerModules = new _modules_playVideo__WEBPACK_IMPORTED_MODULE_1__["default"](".module__video-item .play", ".overlay");
+  playerModules.init();
   const difference = new _modules_difference__WEBPACK_IMPORTED_MODULE_3__["default"](".officerold", ".officernew", ".officer__card-item");
   difference.init();
+  const info = new _modules_showInfo__WEBPACK_IMPORTED_MODULE_5__["default"](".plus__content");
+  info.init();
 
   // const differenceNew = new Difference(".officernew", ".officer__card-item");
   // differenceNew.init();
@@ -152,6 +160,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const form = new _modules_forms__WEBPACK_IMPORTED_MODULE_4__["default"](".form");
   form.init();
+  const download = new _modules_download__WEBPACK_IMPORTED_MODULE_6__["default"](".download");
+  download.init();
 });
 
 /***/ }),
@@ -239,6 +249,44 @@ class Difference {
 // 		} catch (e) {}
 // 	}
 // }
+
+/***/ }),
+
+/***/ "./src/js/modules/download.js":
+/*!************************************!*\
+  !*** ./src/js/modules/download.js ***!
+  \************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Download; });
+class Download {
+  constructor(triggers) {
+    this.btns = document.querySelectorAll(triggers);
+    this.path = "assets/img/mainbg.jpg";
+  }
+  downloadItem(path) {
+    const element = document.createElement("a");
+    element.setAttribute("href", path);
+    element.setAttribute("download", "nice_picture");
+    element.style.display = "none";
+    document.body.appendChild(element);
+    // element.preventDefault();
+
+    element.click();
+    document.body.removeChild(element);
+  }
+  init() {
+    this.btns.forEach(item => {
+      item.addEventListener("click", e => {
+        e.stopPropagation();
+        this.downloadItem(this.path);
+      });
+    });
+  }
+}
 
 /***/ }),
 
@@ -332,49 +380,133 @@ class VideoPlayer {
   constructor(triggers, overlay) {
     this.btns = document.querySelectorAll(triggers);
     this.overlay = document.querySelector(overlay);
-    this.close = this.overlay.querySelector('.close');
+    this.close = this.overlay.querySelector(".close");
+    this.onPlayerStateChange = this.onPlayerStateChange.bind(this);
   }
   bindTriggers() {
-    this.btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (document.querySelector('iframe#frame')) {
-          this.overlay.style.display = 'flex';
-        } else {
-          const path = btn.getAttribute('data-url');
-          this.createPlayer(path);
+    this.btns.forEach((btn, i) => {
+      try {
+        const blockedElem = btn.closest(".module__video-item").nextElementSibling;
+        if (i % 2 == 0) {
+          blockedElem.setAttribute("data-disabled", "true");
+        }
+      } catch (e) {}
+      btn.addEventListener("click", () => {
+        if (!btn.closest(".module__video-item") || btn.closest(".module__video-item").getAttribute("data-disabled") !== "true") {
+          this.activeBtn = btn;
+          if (document.querySelector("iframe#frame")) {
+            this.overlay.style.display = "flex";
+            if (this.path !== btn.getAttribute("data-url")) {
+              this.path = btn.getAttribute("data-url");
+              this.player.loadVideoById({
+                videoId: this.path
+              });
+            }
+          } else {
+            this.path = btn.getAttribute("data-url");
+            this.createPlayer(this.path);
+          }
         }
       });
     });
   }
   bindCloseBtn() {
-    this.close.addEventListener('click', () => {
-      this.overlay.style.display = 'none';
+    this.close.addEventListener("click", () => {
+      this.overlay.style.display = "none";
       this.player.stopVideo();
-    });
-    this.overlay.addEventListener('click', e => {
-      if (e.target === this.overlay) {
-        this.overlay.style.display = 'none';
-      }
     });
   }
   createPlayer(url) {
-    this.player = new YT.Player('frame', {
-      height: '100%',
-      width: '100%',
-      videoId: `${url}`
+    this.player = new YT.Player("frame", {
+      height: "100%",
+      width: "100%",
+      videoId: `${url}`,
+      events: {
+        onStateChange: this.onPlayerStateChange
+      }
     });
-    console.log(this.player);
-    this.overlay.style.display = 'flex';
+    this.overlay.style.display = "flex";
+  }
+  onPlayerStateChange(state) {
+    try {
+      const blockedElem = this.activeBtn.closest(".module__video-item").nextElementSibling;
+      const playBtn = this.activeBtn.querySelector("svg").cloneNode(true);
+      if (state.data === 0) {
+        if (blockedElem.querySelector(".play__circle").classList.contains("closed")) {
+          blockedElem.querySelector(".play__circle").classList.remove("closed");
+          blockedElem.querySelector("svg").remove();
+          blockedElem.querySelector(".play__circle").appendChild(playBtn);
+          blockedElem.querySelector(".play__text").textContent = "play video";
+          blockedElem.querySelector(".play__text").classList.remove("attention");
+          blockedElem.style.opacity = 1;
+          blockedElem.style.filter = "none";
+          blockedElem.setAttribute("data-disabled", "false");
+        }
+      }
+    } catch (e) {}
   }
   init() {
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    this.bindTriggers();
-    this.bindCloseBtn();
+    if (this.btns.length > 0) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      this.bindTriggers();
+      this.bindCloseBtn();
+    }
   }
 }
+
+/***/ }),
+
+/***/ "./src/js/modules/showInfo.js":
+/*!************************************!*\
+  !*** ./src/js/modules/showInfo.js ***!
+  \************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return ShowInfo; });
+class ShowInfo {
+  constructor(trigger) {
+    this.btn = document.querySelectorAll(trigger);
+  }
+  init() {
+    this.btn.forEach(btn => {
+      const sibling = btn.closest(".module__info-show").nextElementSibling;
+      btn.addEventListener("click", () => {
+        if (!sibling.classList.contains("msg")) {
+          sibling.classList.add("msg");
+          btn.querySelector("svg").innerHTML = `<path d="M5.16699 1.00033C5.16699 0.540088 5.54009 0.166992 6.00033 0.166992C6.46056 0.166992 6.83366 0.540088 6.83366 1.00033V11.0003C6.83366 11.4606 6.46056 11.8337 6.00033 11.8337C5.54009 11.8337 5.16699 11.4606 5.16699 11.0003V1.00033Z" fill="white"/>
+                    <path d="M1.00033 6.83366C0.540088 6.83366 0.166992 6.46056 0.166992 6.00033C0.166992 5.54009 0.540088 5.16699 1.00033 5.16699H11.0003C11.4606 5.16699 11.8337 5.54009 11.8337 6.00033C11.8337 6.46056 11.4606 6.83366 11.0003 6.83366H1.00033Z" fill="white"/>`;
+        } else {
+          btn.querySelector("svg").innerHTML = ` <path d="M1.00033 6.83366C0.540088 6.83366 0.166992 6.46056 0.166992 6.00033C0.166992 5.54009 0.540088 5.16699 1.00033 5.16699H11.0003C11.4606 5.16699 11.8337 5.54009 11.8337 6.00033C11.8337 6.46056 11.4606 6.83366 11.0003 6.83366H1.00033Z" fill="white"/>`;
+          sibling.classList.remove("msg");
+          sibling.style.marginTop = "20px";
+        }
+      });
+    });
+  }
+}
+
+// export default class ShowInfo {
+// 	constructor(triggers) {
+// 		this.btns = document.querySelectorAll(triggers);
+// 	}
+
+// 	init() {
+// 		this.btns.forEach((btn) => {
+// 			btn.addEventListener("click", () => {
+// 				const sibling = btn.closest(".module__info-show").nextElementSibling;
+
+// 				sibling.classList.toggle("msg");
+// 				sibling.style.marginTop = "20px";
+// 			});
+// 		});
+// 	}
+// }
 
 /***/ }),
 
